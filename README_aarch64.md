@@ -81,9 +81,43 @@ You will not need to make use of any other std::thread API calls in this assignm
  two processors. Specifically, compute the top half of the image in
   thread 0, and the bottom half of the image in thread 1. This type
     of problem decomposition is referred to as _spatial decomposition_ since
-  different spatial regions of the image are computed by different processors.
+  different spatial regions of the image are computed by different processors. **DONE**
 2.  Extend your code to use 2 to the number of (performance CPU cores on your Mac or) machine threads, partitioning the image
-  generation work accordingly (threads should get blocks of the image). In your writeup hypothesize why this is (or is not) the case? (you may also wish to produce a graph __for VIEW 2__ to help you come up with a good answer. Hint: take a careful look at the three-thread datapoint.)
+  generation work accordingly (threads should get blocks of the image). In your writeup hypothesize why this is (or is not) the case? (you may also wish to produce a graph __for VIEW 2__ to help you come up with a good answer. Hint: take a careful look at the three-thread datapoint.).
+  > I think it happens, because though we have multipule threads, in our code we also sequential work. We initialize workers, arguments for them and them launch threads. Measurements show us the next picture:
+  ```
+  # View 2
+  Thread 5
+  took 0.0238 ms
+  Thread 4
+  took 0.0258 ms
+  Thread 2
+  took 0.0258 ms
+  Thread 3
+  took 0.0279 ms
+  Thread 1
+  took 0.0307 ms
+  Thread 0
+  took 0.0579 ms
+  ```
+  ```
+  # View 1
+  Thread 0
+  took 0.0088 ms
+  Thread 5
+  took 0.0089 ms
+  Thread 1
+  took 0.0611 ms
+  Thread 4
+  took 0.0624 ms
+  Thread 2
+  took 0.1059 ms
+  Thread 3
+  took 0.1063 ms
+  ```
+  > If look at the picture generated with `VEIW 2`, we will see, that rows that have more brightful areas tend to take more time to get a result. It happens because of our algorithm. If we want to alihn this work and make our speed naively scalable as number of threads, we need to somehow cut our pictures into parts that have same amount of work instead data points.
+
+  
 3.  To confirm (or disprove) your hypothesis, measure the amount of time
   each thread requires to complete its work by inserting timing code at
   the beginning and end of `workerThreadStart()`. How do your measurements
@@ -94,7 +128,10 @@ You will not need to make use of any other std::thread API calls in this assignm
   assignment that will achieve this goal, and no communication/synchronization
   among threads is necessary.). In your writeup, describe your approach to parallelization
   and report the final 8-thread speedup obtained with the same number of threads as the number of performance CPU cores your machine has. 
-5. Now run your improved code with 2 * (number of performance CPU cores on your) machine threads. Is performance noticably greater than when running with eight threads? Why or why not? 
+  > 1) Processing each row per thread every `numThread` (workerThreadStartOneRow implementation) showed us more efficiency than naively giving each thread determined and consecutive block of data points. It happends, because load distribution became balanced compared with the first version (3.04 VS 5.29 speedup on 6 threads);
+  > 2) Same improvement, random rearrangement also better than naive implementation, but the result is worse than `workerThreadStartOneRow` function (current function - workerThreadStartRandomBlock) (5.0-5.12 VS 5.27-5.29 speedup). It happens because of the overhead operations with allocating *rowOder* vector to shuffle indicies.
+5. Now run your improved code with 2 * (number of performance CPU cores on your) machine threads. Is performance noticably greater than when running with eight threads? Why or why not?
+> It's still better. 12 threads launch gives 8.29x speedup while 8 t-launch — 6.12x speedup. It's better, becuase we work with good-to-parallize task and as more threads we have, as more perfomance we'll get.
   
 ## Program 2: Vectorizing Code Using SIMD Intrinsics (20 points) ##
 
