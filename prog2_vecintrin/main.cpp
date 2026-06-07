@@ -63,8 +63,8 @@ int main(int argc, char * argv[]) {
   clampedExpSerial(values, exponents, gold, N);
   clampedExpVector(values, exponents, output, N);
 
-  //absSerial(values, gold, N);
-  //absVector(values, output, N);
+  // absSerial(values, gold, N);
+  // absVector(values, output, N);
 
   printf("\e[1;31mCLAMPED EXPONENT\e[0m (required) \n");
   bool clampedCorrect = verifyResult(values, exponents, output, gold, N);
@@ -207,7 +207,7 @@ void absVector(float* values, float* output, int N) {
     maskIsNotNegative = _cs149_mask_not(maskIsNegative);     // } else {
 
     // Execute instruction ("else" clause)
-    _cs149_vload_float(result, values+i, maskIsNotNegative); //   output[i] = x; }
+    _cs149_vmove_float(result, x, maskIsNotNegative); //   output[i] = x; }
 
     // Write results back to memory
     _cs149_vstore_float(output+i, result, maskAll);
@@ -241,7 +241,59 @@ void clampedExpSerial(float* values, int* exponents, float* output, int N) {
 }
 
 void clampedExpVector(float* values, int* exponents, float* output, int N) {
+  __cs149_vec_float x;
+  __cs149_vec_int y;
+  __cs149_vec_float result;
+  __cs149_vec_int zero = _cs149_vset_int(0);
+  __cs149_vec_int one = _cs149_vset_int(1);
 
+  __cs149_vec_float ones = _cs149_vset_float(1.f);
+  __cs149_vec_float cap = _cs149_vset_float(9.999999f);
+  __cs149_mask maskAll, maskIsNegative, maskIsNotNegative, maskAllCap;
+
+//  Note: Take a careful look at this loop indexing.  This example
+//  code is not guaranteed to work when (N % VECTOR_WIDTH) != 0.
+//  Why is that the case?
+  for (int i=0; i<N; i+=VECTOR_WIDTH) {
+
+    // All ones
+    maskAll = _cs149_init_ones(min(VECTOR_WIDTH, N - i));
+
+    // All zeros
+    maskIsNegative = _cs149_init_ones(0);
+
+    _cs149_vload_float(x, values+i, maskAll);               // x = values[i];
+    _cs149_vload_int(y, exponents+i, maskAll);            // y = exponents[i];
+
+    // Set mask according to predicate
+    _cs149_veq_int(maskIsNegative, y, zero, maskAll);     // if (y == 0) {
+
+    _cs149_vmove_float(result, ones, maskIsNegative);       // output[i] = 1.f;
+
+    // Inverse maskIsNegative to generate "else" mask
+    maskIsNotNegative = _cs149_mask_not(maskIsNegative);     // } else {
+    maskIsNotNegative = _cs149_mask_and(maskIsNotNegative, maskAll);
+
+    // Execute instruction ("else" clause)
+    // _cs149_vload_float(result, values+i, maskIsNotNegative); //   output[i] = x; }
+
+    _cs149_vmove_float(result, x, maskIsNotNegative);
+    _cs149_vsub_int(y, y, one, maskIsNotNegative);
+    _cs149_vgt_int(maskIsNotNegative, y, zero, maskIsNotNegative);
+
+    while (_cs149_cntbits(maskIsNotNegative) > 0) {
+      _cs149_vmult_float(result, result, x, maskIsNotNegative);
+      _cs149_vsub_int(y, y, one, maskIsNotNegative);
+      _cs149_vgt_int(maskIsNotNegative, y, zero, maskIsNotNegative);
+    }
+    maskAllCap = _cs149_init_ones();
+
+    _cs149_vgt_float(maskAllCap, result, cap, maskAll);
+    _cs149_vmove_float(result, cap, maskAllCap);
+    
+    // Write results back to memory
+    _cs149_vstore_float(output+i, result, maskAll);
+  }
   //
   // CS149 STUDENTS TODO: Implement your vectorized version of
   // clampedExpSerial() here.

@@ -162,11 +162,21 @@ shows the percentage of vector lanes that are enabled.
 
 **What you need to do:**
 
-1.  Implement a vectorized version of `clampedExpSerial` in `clampedExpVector` . Your implementation 
-should work with any combination of input array size (`N`) and vector width (`VECTOR_WIDTH`). 
+1.  Implement a vectorized version of `clampedExpSerial` in `clampedExpVector` . Your implementation
+should work with any combination of input array size (`N`) and vector width (`VECTOR_WIDTH`). **Done!**
 2.  Run `./myexp -s 10000` and sweep the vector width from 2, 4, 8, to 16. Record the resulting vector 
 utilization. You can do this by changing the `#define VECTOR_WIDTH` value in `CS149intrin.h`. 
 Does the vector utilization increase, decrease or stay the same as `VECTOR_WIDTH` changes? Why?
+
+|Vector Width|Vector utilization %|
+|---|---|
+|2|77.8%|
+|4|70.7%|
+|8|67.1%|
+|16|65.3%|
+
+> It happens, because the number of total operation per closk is increasing while memory throughput stays the same and as we have more operations per clock as less utilization in percentages we have.
+
 3.  _Extra credit: (1 point)_ Implement a vectorized version of `arraySumSerial` in `arraySumVector`. Your implementation may assume that `VECTOR_WIDTH` is a factor of the input array size `N`. Whereas the serial implementation runs in `O(N)` time, your implementation should aim for runtime of `(N / VECTOR_WIDTH + VECTOR_WIDTH)` or even `(N / VECTOR_WIDTH + log2(VECTOR_WIDTH))`  You may find the `hadd` and `interleave` operations useful.
 
 ## Program 3: Parallel Fractal Generation Using ISPC (20 points) ##
